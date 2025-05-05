@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JewelCAD - Automated Jewelry CAD Generation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #F0C26A 0%, #BF953F 100%);
+        }
+        .preview-container {
+            width: 100%;
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            background-color: rgba(240, 194, 106, 0.1);
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .step-number {
+            background: linear-gradient(135deg, #F0C26A 0%, #BF953F 100%);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        /* Custom scrollbar for the page */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #BF953F;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #F0C26A;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <nav class="gradient-bg text-white p-4 shadow-md">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center mb-4 md:mb-0">
+                <i class="bi bi-gem text-3xl mr-2"></i>
+                <h1 class="text-2xl font-bold">JewelCAD</h1>
+            </div>
+            <div class="flex flex-wrap justify-center space-x-4">
+                <a href="#" class="hover:text-gray-200 flex items-center"><i class="bi bi-info-circle mr-1"></i> How It Works</a>
+                <a href="#" class="hover:text-gray-200 flex items-center"><i class="bi bi-tag mr-1"></i> Pricing</a>
+                <a href="#" class="hover:text-gray-200 flex items-center"><i class="bi bi-envelope mr-1"></i> Contact</a>
+                <a href="#" class="bg-white text-yellow-700 px-4 py-1 rounded-full hover:bg-gray-100 font-medium flex items-center">
+                    <i class="bi bi-person mr-1"></i> Login
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="bg-white py-12 shadow-sm">
+        <div class="container mx-auto text-center px-4">
+            <h2 class="text-4xl font-bold mb-4 text-gray-800">Automated Jewelry CAD Generation</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto text-lg">Upload your jewelry image and get a ready-to-use STL file in minutes. AI-powered precision for jewelers and manufacturers.</p>
+            <div class="mt-8 flex justify-center space-x-4">
+                <span class="inline-flex items-center text-sm text-gray-500">
+                    <i class="bi bi-check-circle-fill text-green-500 mr-2"></i> Fast Processing
+                </span>
+                <span class="inline-flex items-center text-sm text-gray-500">
+                    <i class="bi bi-check-circle-fill text-green-500 mr-2"></i> Accurate Models
+                </span>
+                <span class="inline-flex items-center text-sm text-gray-500">
+                    <i class="bi bi-check-circle-fill text-green-500 mr-2"></i> Instant STL Files
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-10">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 card-shadow">
+                <div class="mb-8">
+                    <div class="flex items-center mb-4">
+                        <div class="step-number text-white font-bold mr-3">1</div>
+                        <h3 class="text-xl font-semibold">Upload Jewelry Image</h3>
+                    </div>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center upload-area cursor-pointer" id="uploadArea">
+                        <i class="bi bi-cloud-upload text-5xl text-gray-400"></i>
+                        <p class="mt-3 text-gray-500">Drag and drop your image here or</p>
+                        <button class="mt-3 bg-yellow-600 text-white px-5 py-2 rounded-md hover:bg-yellow-700 transition duration-300">
+                            <i class="bi bi-image mr-2"></i>Browse Files
+                        </button>
+                        <input type="file" id="imageUpload" class="hidden" accept="image/*">
+                        <p class="text-xs text-gray-400 mt-3">Supported formats: JPG, PNG, HEIF (max 10MB)</p>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <div class="flex items-center mb-4">
+                        <div class="step-number text-white font-bold mr-3">2</div>
+                        <h3 class="text-xl font-semibold">Specify Details</h3>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 mb-2 font-medium">Weight (grams)</label>
+                                <div class="relative">
+                                    <input type="number" class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none" placeholder="Enter weight" min="0" step="0.01" id="weightInput">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <span class="text-gray-500">g</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 mb-2 font-medium">Carat Size</label>
+                                <div class="relative">
+                                    <input type="number" class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none" placeholder="Enter carat size" min="0" step="0.01" id="caratInput">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <span class="text-gray-500">ct</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-gray-700 mb-2 font-medium">Material</label>
+                                <select class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none" id="materialSelect">
+                                    <option value="gold">Gold</option>
+                                    <option value="silver">Silver</option>
+                                    <option value="platinum">Platinum</option>
+                                    <option value="whitegold">White Gold</option>
+                                    <option value="rosegold">Rose Gold</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 mb-2 font-medium">Gold Carat</label>
+                                <select class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none" id="goldCaratSelect">
+                                    <option value="24">24K (99.9% pure)</option>
+                                    <option value="22">22K (91.7% pure)</option>
+                                    <option value="18" selected>18K (75.0% pure)</option>
+                                    <option value="14">14K (58.3% pure)</option>
+                                    <option value="10">10K (41.7% pure)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <div class="flex items-center mb-4">
+                        <div class="step-number text-white font-bold mr-3">3</div>
+                        <h3 class="text-xl font-semibold">3D Preview</h3>
+                    </div>
+                    <div class="preview-container rounded-lg overflow-hidden shadow-inner" id="preview3D">
+                        <div class="flex items-center justify-center h-full text-gray-400" id="previewPlaceholder">
+                            <div class="text-center">
+                                <i class="bi bi-eye-slash text-5xl"></i>
+                                <p class="mt-2">Preview will appear here after uploading</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-2">
+                        <button class="text-yellow-600 hover:text-yellow-700 text-sm flex items-center">
+                            <i class="bi bi-arrows-fullscreen mr-1"></i> View Fullscreen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <div class="flex items-center mb-4">
+                        <div class="step-number text-white font-bold mr-3">4</div>
+                        <h3 class="text-xl font-semibold">Corrections (Optional)</h3>
+                    </div>
+                    <textarea class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 outline-none" rows="4" placeholder="Enter any modifications needed (e.g., adjust thickness, refine curves, modify stone placement)..." id="correctionsTextarea"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Our AI will automatically apply these corrections to your final model.</p>
+                </div>
+
+                <div class="text-center">
+                    <button id="generateButton" class="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-lg transition duration-300 font-medium text-lg shadow-md">
+                        <i class="bi bi-magic mr-2"></i>Generate STL File
+                    </button>
+                    <p class="text-xs text-gray-500 mt-3">Average processing time: 30-60 seconds</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6 card-shadow mb-8" id="processingSection" style="display: none;">
+                <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="bi bi-gear-wide-connected animate-spin mr-2 text-yellow-600"></i>
+                    Processing Your Request
+                </h3>
+                <div class="mb-4">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-sm text-gray-600" id="processingStage">Analyzing image...</span>
+                        <span class="text-sm text-gray-600" id="processingPercentage">25%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-yellow-600 h-2.5 rounded-full progress-bar" style="width: 25%" id="progressBar"></div>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500">This may take up to a minute depending on the complexity of your design.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6 card-shadow" id="results" style="display: none;">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                        <i class="bi bi-check-lg text-green-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold">Generation Complete!</h3>
+                        <p class="text-gray-600">Your jewelry CAD model is ready for download</p>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h4 class="font-medium mb-4 text-gray-700 border-b pb-2">Model Specifications:</h4>
+                        <ul class="space-y-3 text-gray-600">
+                            <li class="flex justify-between">
+                                <span>Final Weight:</span> 
+                                <span class="font-medium" id="finalWeight">7.85 g</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span>Dimensions:</span> 
+                                <span class="font-medium" id="dimensions">15.2 x 12.8 x 5.3 mm</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span>Material:</span> 
+                                <span class="font-medium" id="material">Gold (18K)</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span>Stone Count:</span> 
+                                <span class="font-medium" id="stoneCount">7</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span>Main Stone Size:</span> 
+                                <span class="font-medium" id="stoneSize">1.2 ct</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span>Estimated Cost:</span> 
+                                <span class="font-medium" id="estimatedCost">$350-420</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-col justify-between">
+                        <div class="preview-container mb-4 rounded-lg overflow-hidden shadow-inner" id="finalPreview"></div>
+                        <div class="space-y-2">
+                            <button class="w-full bg-yellow-600 text-white px-4 py-3 rounded-md hover:bg-yellow-700 transition duration-300 flex items-center justify-center font-medium">
+                                <i class="bi bi-download mr-2"></i>Download STL File
+                            </button>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition duration-300 flex items-center justify-center">
+                                    <i class="bi bi-file-pdf mr-2"></i>Download Report
+                                </button>
+                                <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center justify-center">
+                                    <i class="bi bi-share mr-2"></i>Share Model
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <h4 class="font-medium mb-3">Need more adjustments?</h4>
+                    <div class="flex space-x-4">
+                        <button id="editAgainButton" class="text-yellow-600 border border-yellow-600 px-4 py-2 rounded-md hover:bg-yellow-50 transition duration-300 flex items-center">
+                            <i class="bi bi-pencil mr-2"></i>Edit Again
+                        </button>
+                        <button class="text-gray-600 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition duration-300 flex items-center">
+                            <i class="bi bi-chat-left-text mr-2"></i>Contact Support
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-10 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="bi bi-gem text-2xl mr-2 text-yellow-500"></i>
+                        <h3 class="text-xl font-bold">JewelCAD</h3>
+                    </div>
+                    <p class="text-gray-400 text-sm">Revolutionizing jewelry design with AI-powered CAD generation. Upload, customize, and create professional jewelry models in minutes.</p>
+                </div>
+                <div>
+                    <h4 class="font-medium mb-4 text-lg">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-yellow-500">How It Works</a></li>
+                        <li><a href="#" class="hover:text-yellow-500">Pricing Plans</a></li>
+                        <li><a href="#" class="hover:text-yellow-500">FAQ</a></li>
+                        <li><a href="#" class="hover:text-yellow-500">Support</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium mb-4 text-lg">Contact Us</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center"><i class="bi bi-envelope-fill mr-2 text-yellow-500"></i> support@jewelcad.com</li>
+                        <li class="flex items-center"><i class="bi bi-telephone-fill mr-2 text-yellow-500"></i> +1 (800) 555-0123</li>
+                        <li class="flex items-center"><i class="bi bi-geo-alt-fill mr-2 text-yellow-500"></i> 123 Jewelry Lane, Suite 100<br>New York, NY 10001</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 text-sm mb-4 md:mb-0">© 2023 JewelCAD. All rights reserved.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-yellow-500"><i class="bi bi-facebook text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-500"><i class="bi bi-twitter text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-500"><i class="bi bi-instagram text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-500"><i class="bi bi-linkedin text-xl"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize 3D Preview
+        let camera, scene, renderer, controls, model;
+        let animationFrameId = null;
+
+        function initThreeJS() {
+            const container = document.getElementById('preview3D');
+            
+            // Remove placeholder text when initializing
+            const placeholder = document.getElementById('previewPlaceholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // Clear existing children (if any)
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            
+            // Setup scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf8f9fa);
+            
+            // Setup camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            // Setup renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // Add a ring-like geometry as a placeholder for jewelry
+            const geometry = new THREE.TorusGeometry(1, 0.4, 16, 50);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0xF0C26A,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            model = new THREE.Mesh(geometry, material);
+            model.castShadow = true;
+            model.receiveShadow = true;
+            scene.add(model);
+            
+            // Add grid helper for better depth perception
+            const gridHelper = new THREE.GridHelper(10, 10, 0x888888, 0xcccccc);
+            gridHelper.position.y = -2;
+            scene.add(gridHelper);
+            
+            // Add OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Animation loop
+            function animate() {
+                animationFrameId = requestAnimationFrame(animate);
+                
+                if (model) {
+                    model.rotation.y += 0.005;
+                }
+                
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        // Initialize Three.js when page is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait until the user uploads an image
+            const uploadArea = document.getElementById('uploadArea');
+            const imageInput = document.getElementById('imageUpload');
+            
+            uploadArea.addEventListener('click', function() {
+                imageInput.click();
+            });
+            
+            // Handle drag and drop
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('bg-yellow-50');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('bg-yellow-50');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('bg-yellow-50');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+            
+            imageInput.addEventListener('change', function(e) {
+                if (e.target.files.length) {
+                    handleFileUpload(e.target.files[0]);
+                }
+            });
+            
+            // Generate button click handler
+            const generateButton = document.getElementById('generateButton');
+            generateButton.addEventListener('click', function() {
+                // Show processing section
+                document.getElementById('processingSection').style.display = 'block';
+                
+                // Scroll to processing section
+                document.getElementById('processingSection').scrollIntoView({ behavior: 'smooth' });
+                
+                // Simulate processing stages
+                simulateProcessing();
+            });
+            
+            // Edit again button
+            const editAgainButton = document.getElementById('editAgainButton');
+            editAgainButton.addEventListener('click', function() {
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('processingSection').style.display = 'none';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            
+            // Material select handler - update gold carat dropdown visibility
+            const materialSelect = document.getElementById('materialSelect');
+            const goldCaratSelect = document.getElementById('goldCaratSelect').parentElement;
+            
+            materialSelect.addEventListener('change', function() {
+                if (this.value === 'gold' || this.value === 'whitegold' || this.value === 'rosegold') {
+                    goldCaratSelect.style.display = 'block';
+                } else {
+                    goldCaratSelect.style.display = 'none';
+                }
+            });
+
+            // Initialize the material display
+            if (materialSelect.value === 'gold' || materialSelect.value === 'whitegold' || materialSelect.value === 'rosegold') {
+                goldCaratSelect.style.display = 'block';
+            } else {
+                goldCaratSelect.style.display = 'none';
+            }
+        });
+
+        // Handle file upload
+        function handleFileUpload(file) {
+            if (file) {
+                // Check if file is an image
+                if (!file.type.match('image.*')) {
+                    alert('Please upload an image file');
+                    return;
+                }
+                
+                // Check file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File size exceeds 10MB limit');
+                    return;
+                }
+                
+                // Display uploaded image filename
+                const uploadArea = document.getElementById('uploadArea');
+                uploadArea.innerHTML = `
+                    <div class="flex items-center justify-center flex-col">
+                        <i class="bi bi-check-circle-fill text-5xl text-green-500"></i>
+                        <p class="mt-3 text-gray-700 font-medium">${file.name}</p>
+                        <p class="text-sm text-gray-500">${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        <button class="mt-3 bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition duration-300">
+                            Change Image
+                        </button>
+                    </div>
+                `;
+                
+                // Initialize 3D preview
+                initThreeJS();
+                
+                // Read and display the image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // You could use this image data to texture the 3D model
+                    // or to create a more sophisticated preview
+                    // For now, we'll just initialize the basic preview
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Simulate processing stages
+        function simulateProcessing() {
+            const progressBar = document.getElementById('progressBar');
+            const processingStage = document.getElementById('processingStage');
+            const processingPercentage = document.getElementById('processingPercentage');
+            let progress = 0;
+            
+            const stages = [
+                {percent: 25, text: "Analyzing image..."},
+                {percent: 50, text: "Creating 3D model..."},
+                {percent: 75, text: "Applying specifications..."},
+                {percent: 90, text: "Finalizing STL file..."},
+                {percent: 100, text: "Complete!"}
+            ];
+            
+            let currentStage = 0;
+            
+            const interval = setInterval(function() {
+                if (currentStage < stages.length) {
+                    progress = stages[currentStage].percent;
+                    progressBar.style.width = progress + '%';
+                    processingStage.textContent = stages[currentStage].text;
+                    processingPercentage.textContent = progress + '%';
+                    currentStage++;
+                    
+                    if (currentStage === stages.length) {
+                        clearInterval(interval);
+                        
+                        // Show results after a short delay
+                        setTimeout(function() {
+                            document.getElementById('processingSection').style.display = 'none';
+                            document.getElementById('results').style.display = 'block';
+                            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                            
+                            // Initialize the final preview
+                            initFinalPreview();
+                            
+                            // Update result values based on input
+                            updateResultValues();
+                        }, 500);
+                    }
+                }
+            }, 800);
+        }
+        
+        // Initialize the final preview in results section
+        function initFinalPreview() {
+            const container = document.getElementById('finalPreview');
+            const finalScene = new THREE.Scene();
+            finalScene.background = new THREE.Color(0xf8f9fa);
+            
+            const finalCamera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            finalCamera.position.z = 5;
+            
+            const finalRenderer = new THREE.WebGLRenderer({ antialias: true });
+            finalRenderer.setSize(container.clientWidth, container.clientHeight);
+            finalRenderer.shadowMap.enabled = true;
+            container.appendChild(finalRenderer.domElement);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            finalScene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            directionalLight.castShadow = true;
+            finalScene.add(directionalLight);
+            
+            // Create a more refined ring model
+            const ringGeometry = new THREE.TorusGeometry(1, 0.4, 32, 100);
+            
+            // Create material based on selected material
+            let materialColor;
+            const materialSelect = document.getElementById('materialSelect');
+            switch(materialSelect.value) {
+                case 'gold':
+                    materialColor = 0xF0C26A;
+                    break;
+                case 'silver':
+                    materialColor = 0xE0E0E0;
+                    break;
+                case 'platinum':
+                    materialColor = 0xE5E4E2;
+                    break;
+                case 'whitegold':
+                    materialColor = 0xf5f5f5;
+                    break;
+                case 'rosegold':
+                    materialColor = 0xB76E79;
+                    break;
+                default:
+                    materialColor = 0xF0C26A;
+            }
+            
+            const ringMaterial = new THREE.MeshStandardMaterial({
+                color: materialColor,
+                metalness: 0.9,
+                roughness: 0.1
+            });
+            
+            const finalRing = new THREE.Mesh(ringGeometry, ringMaterial);
+            finalRing.castShadow = true;
+            finalRing.receiveShadow = true;
+            finalScene.add(finalRing);
+            
+            // Add a gem on top
+            const gemGeometry = new THREE.OctahedronGeometry(0.5, 2);
+            const gemMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: 0.0,
+                roughness: 0.0,
+                transmission: 0.9,
+                transparent: true,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            });
+            
+            const gem = new THREE.Mesh(gemGeometry, gemMaterial);
+            gem.position.y = 0.8;
+            gem.castShadow = true;
+            finalScene.add(gem);
+            
+            // Add small gems around
+            const smallGemGeometry = new THREE.OctahedronGeometry(0.15, 1);
+            const smallGemMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: 0.0,
+                roughness: 0.0,
+                transmission: 0.9,
+                transparent: true
+            });
+            
+            // Create small gems in a circle
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI * 2 / 6) * i;
+                const smallGem = new THREE.Mesh(smallGemGeometry, smallGemMaterial);
+                smallGem.position.x = Math.sin(angle) * 1;
+                smallGem.position.z = Math.cos(angle) * 1;
+                smallGem.position.y = 0.2;
+                smallGem.castShadow = true;
+                finalScene.add(smallGem);
+            }
+            
+            const finalControls = new THREE.OrbitControls(finalCamera, finalRenderer.domElement);
+            finalControls.enableDamping = true;
+            finalControls.dampingFactor = 0.05;
+            
+            function animateFinal() {
+                requestAnimationFrame(animateFinal);
+                
+                finalRing.rotation.y += 0.005;
+                finalControls.update();
+                finalRenderer.render(finalScene, finalCamera);
+            }
+            
+            animateFinal();
+        }
+        
+        // Update result values based on input
+        function updateResultValues() {
+            // Get input values
+            const weightInput = document.getElementById('weightInput').value || "0";
+            const caratInput = document.getElementById('caratInput').value || "0";
+            const materialSelect = document.getElementById('materialSelect');
+            const goldCaratSelect = document.getElementById('goldCaratSelect');
+            
+            // Calculate final values (with some random variation for realism)
+            const finalWeight = parseFloat(weightInput) + (Math.random() * 0.5).toFixed(2);
+            
+            // Update result elements
+            document.getElementById('finalWeight').textContent = finalWeight + " g";
+            document.getElementById('dimensions').textContent = 
+                (10 + Math.random() * 10).toFixed(1) + " x " +
+                (8 + Math.random() * 8).toFixed(1) + " x " +
+                (3 + Math.random() * 5).toFixed(1) + " mm";
+            
+            // Set material text based on selection
+            let materialText = materialSelect.options[materialSelect.selectedIndex].text;
+            
+            // Add gold carat if applicable
+            if (materialSelect.value === 'gold' || materialSelect.value === 'whitegold' || materialSelect.value === 'rosegold') {
+                const caratValue = goldCaratSelect.options[goldCaratSelect.selectedIndex].value;
+                materialText += ` (${caratValue}K)`;
+            }
+            
+            document.getElementById('material').textContent = materialText;
+            
+            // Set stone count (random for demo)
+            const stoneCount = Math.floor(Math.random() * 10) + 1;
+            document.getElementById('stoneCount').textContent = stoneCount;
+            
+            // Set main stone size based on input or default
+            document.getElementById('stoneSize').textContent = caratInput + " ct";
+            
+            // Calculate estimated cost (very simplified)
+            let baseCost = finalWeight * 20; // $20 per gram base
+            
+            // Adjust based on material
+            switch(materialSelect.value) {
+                case 'gold':
+                case 'whitegold':
+                case 'rosegold':
+                    // Adjust for gold carat
+                    const caratValue = parseInt(goldCaratSelect.value);
+                    baseCost *= (caratValue / 10);
+                    break;
+                case 'platinum':
+                    baseCost *= 1.5;
+                    break;
+            }
+            
+            // Add cost for stones
+            baseCost += parseFloat(caratInput) * 100; // $100 per carat
+            
+            // Add some variation
+            const minCost = Math.floor(baseCost * 0.9);
+            const maxCost = Math.ceil(baseCost * 1.1);
+            
+            document.getElementById('estimatedCost').textContent = `$${minCost}-${maxCost}`;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (camera && renderer) {
+                const container = document.getElementById('preview3D');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+
+        // Clean up Three.js resources when the page is unloaded
+        window.addEventListener('beforeunload', function() {
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            
+            if (renderer) {
+                renderer.dispose();
+            }
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
